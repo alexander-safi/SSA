@@ -14,9 +14,9 @@ public class Source implements CProcess
 	/** Eventlist that will be requested to construct events */
 	private CEventList list;
 	/** Queue that buffers products for the machine */
-	private ArrayList<ProductAcceptor> queues;
-	private ProductAcceptor regularQueue;
-	private ProductAcceptor serviceQueue;
+	private ArrayList<Queue> queues;
+	private Queue regularQueue;
+	private Queue serviceQueue;
 	/** Name of the source */
 	private String name;
 	/** Mean interarrival time */
@@ -35,7 +35,7 @@ public class Source implements CProcess
 	*	@param l	The eventlist that is requested to construct events
 	*	@param n	Name of object
 	*/
-	public Source(ArrayList<ProductAcceptor> regularQueues, Queue regularQueue, Queue serviceQueue, CEventList l, String n)
+	public Source(ArrayList<Queue> regularQueues, Queue regularQueue, Queue serviceQueue, CEventList l, String n)
 	{
 		list = l;
 		queues = regularQueues;
@@ -55,7 +55,7 @@ public class Source implements CProcess
 	*	@param n	Name of object
 	*	@param m	Mean arrival time
 	*/
-	public Source(ArrayList<ProductAcceptor> q,CEventList l,String n,double m)
+	public Source(ArrayList<Queue> q,CEventList l,String n,double m)
 	{
 		list = l;
 		queues = q;
@@ -73,7 +73,7 @@ public class Source implements CProcess
 	*	@param n	Name of object
 	*	@param ia	interarrival times
 	*/
-	public Source(ArrayList<ProductAcceptor> q,CEventList l,String n,double[] ia)
+	public Source(ArrayList<Queue> q,CEventList l,String n,double[] ia)
 	{
 		list = l;
 		queues = q;
@@ -134,13 +134,13 @@ public class Source implements CProcess
 			for(Queue q: openQueues){
 				if(q.getSize()  < size){
 					shortestQueue = q;
-					size = g.getSize;
+					size = q.getSize();
 				}
 			}
 			//Also look at the combined queue of the service registry
-			if(regularQueue.size() + serviceQueue.size() < size){
+			if(regularQueue.getSize() + serviceQueue.getSize() < size){
 				shortestQueue = regularQueue;
-				size = regularQueue.size() + serviceQueue.size();
+				size = regularQueue.getSize() + serviceQueue.getSize();
 			}
 			//Give product to shortest queue
 			shortestQueue.giveProduct(p);

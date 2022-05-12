@@ -14,12 +14,14 @@ public class Queue implements ProductAcceptor
 	/** Requests from machine that will be handling the products */
 	private ArrayList<Machine> requests;
 	private boolean regularQueue;
+	private boolean isOpen;
 	/**
 	*	Initializes the queue and introduces a dummy machine
 	*	the machine has to be specified later
 	*/
 	public Queue(boolean regularQueue)
-	{
+	{	
+		isOpen = true;
 		row = new ArrayList<>();
 		requests = new ArrayList<>();
 	}
@@ -28,6 +30,9 @@ public class Queue implements ProductAcceptor
 	}
 	public int getSize(){
 		return row.size();
+	}
+	public boolean isOpen(){
+		return isOpen;
 	}
 	
 	/**

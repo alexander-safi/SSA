@@ -15,6 +15,7 @@ public class Machine implements CProcess,ProductAcceptor
 	private final CEventList eventlist;
 	/** Queue from which the machine has to take products */
 	private Queue queue;
+	private Queue serviceQueue;
 	/** Sink to dump products */
 	private ProductAcceptor sink;
 	private ProductAcceptor serviceSink;
@@ -80,16 +81,17 @@ public class Machine implements CProcess,ProductAcceptor
 	 * @param n The name of the machine
 	 * @param m Mean processing time
 	 */
-	public Machine(Queue regularQueue, Queue serviceQueue, ProductAcceptor regularSink, ProductAcceptor serviceSink, CEventList e, String n, double m)
+	public Machine(Queue regularQueue, Queue serviceQueue, ProductAcceptor regularSink, ProductAcceptor serviceSink, CEventList e, String n)
 	{
 		doesService = true;
 		status='i';
-		queue=q;
+		queue=regularQueue;
+		this.serviceQueue = serviceQueue;
 		sink=regularSink;
-		serviceSink = serviceSink;
+		this.serviceSink = serviceSink;
 		eventlist=e;
 		name=n;
-		meanProcTime=m;
+		meanProcTime=30;
 		queue.askProduct(this);
 	}
 	
@@ -140,7 +142,7 @@ public class Machine implements CProcess,ProductAcceptor
 			//Remove product from system
 			product.stamp(tme,"Production complete",name);
 			//Send product to appropriate sink
-			if(product.isRegular){
+			if(product.isRegular()){
 				sink.giveProduct(product);
 			} else {
 				serviceSink.giveProduct(product);
@@ -151,7 +153,7 @@ public class Machine implements CProcess,ProductAcceptor
 			//Ask product to queues : ask service queue first, if no product is given, 
 			//						  ask regular queue second
 			if(!serviceQueue.askProduct(this)){
-				regularQueue.askProduct(this);
+				queue.askProduct(this);
 			}
 		}
 	}

@@ -49,7 +49,7 @@ public class Simulation {
 			Machine m = new Machine(queues.get(i),sr,l,"Machine "+(i+1));
 			machines.add(m);
 		}
-		Machine m = new Machine(queues.get(5), queues.get(6),sr,ss,l,"Machine Service" );
+		Machine m = new Machine(queues.get(5), queues.get(6),sr,ss,l,"Machine Service");
 
 		// start the eventlist
 		l.start(2000); // 2000 is maximum time

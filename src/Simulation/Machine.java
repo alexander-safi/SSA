@@ -17,6 +17,7 @@ public class Machine implements CProcess,ProductAcceptor
 	private Queue queue;
 	/** Sink to dump products */
 	private ProductAcceptor sink;
+	private ProductAcceptor serviceSink;
 	/** Status of the machine (b=busy, i=idle) */
 	private char status;
 	/** Machine name */
@@ -27,6 +28,7 @@ public class Machine implements CProcess,ProductAcceptor
 	private double[] processingTimes;
 	/** Processing time iterator */
 	private int procCnt;
+	private boolean doesService;
 	
 
 	/**
@@ -38,7 +40,8 @@ public class Machine implements CProcess,ProductAcceptor
 	*	@param n	The name of the machine
 	*/
 	public Machine(Queue q, ProductAcceptor s, CEventList e, String n)
-	{
+	{	
+		doesService = false;
 		status='i';
 		queue=q;
 		sink=s;
@@ -59,9 +62,31 @@ public class Machine implements CProcess,ProductAcceptor
 	*/
 	public Machine(Queue q, ProductAcceptor s, CEventList e, String n, double m)
 	{
+		doesService = false;
 		status='i';
 		queue=q;
 		sink=s;
+		eventlist=e;
+		name=n;
+		meanProcTime=m;
+		queue.askProduct(this);
+	}
+	/**
+	 * Constructor for mixed cash/service register
+	 * @param regularQueue : queue for regular registry
+	 * @param serviceQueue : queue for servide registry
+	 * @param s Where to send the completed products
+	 * @param e Eventlist that will manage events
+	 * @param n The name of the machine
+	 * @param m Mean processing time
+	 */
+	public Machine(Queue regularQueue, Queue serviceQueue, ProductAcceptor regularSink, ProductAcceptor serviceSink, CEventList e, String n, double m)
+	{
+		doesService = true;
+		status='i';
+		queue=q;
+		sink=regularSink;
+		serviceSink = serviceSink;
 		eventlist=e;
 		name=n;
 		meanProcTime=m;
@@ -79,6 +104,7 @@ public class Machine implements CProcess,ProductAcceptor
 	*/
 	public Machine(Queue q, ProductAcceptor s, CEventList e, String n, double[] st)
 	{
+		doesService = false;
 		status='i';
 		queue=q;
 		sink=s;
@@ -97,16 +123,37 @@ public class Machine implements CProcess,ProductAcceptor
 	*/
 	public void execute(int type, double tme)
 	{
-		// show arrival
-		System.out.println("Product finished at time = " + tme);
-		// Remove product from system
-		product.stamp(tme,"Production complete",name);
-		sink.giveProduct(product);
-		product=null;
-		// set machine status to idle
-		status='i';
-		// Ask the queue for products
-		queue.askProduct(this);
+		if(!doesService){
+			// show arrival
+			System.out.println("Product finished at time = " + tme);
+			// Remove product from system
+			product.stamp(tme,"Production complete",name);
+			sink.giveProduct(product);
+			product=null;
+			// set machine status to idle
+			status='i';
+			// Ask the queue for products
+			queue.askProduct(this);
+		} else {
+			//Show arrival
+			System.out.println("Product finished at time = " + tme);
+			//Remove product from system
+			product.stamp(tme,"Production complete",name);
+			//Send product to appropriate sink
+			if(product.isRegular){
+				sink.giveProduct(product);
+			} else {
+				serviceSink.giveProduct(product);
+			}
+			product = null;
+			//Set machine status to idle
+			status = 'i';
+			//Ask product to queues : ask service queue first, if no product is given, 
+			//						  ask regular queue second
+			if(!serviceQueue.askProduct(this)){
+				regularQueue.askProduct(this);
+			}
+		}
 	}
 	
 	/**

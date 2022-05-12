@@ -13,15 +13,21 @@ public class Queue implements ProductAcceptor
 	private ArrayList<Product> row;
 	/** Requests from machine that will be handling the products */
 	private ArrayList<Machine> requests;
-	
+	private boolean regularQueue;
 	/**
 	*	Initializes the queue and introduces a dummy machine
 	*	the machine has to be specified later
 	*/
-	public Queue()
+	public Queue(boolean regularQueue)
 	{
 		row = new ArrayList<>();
 		requests = new ArrayList<>();
+	}
+	public boolean isRegular(){
+		return regularQueue;
+	}
+	public int getSize(){
+		return row.size();
 	}
 	
 	/**
@@ -54,7 +60,7 @@ public class Queue implements ProductAcceptor
 	*	It is investigated whether a machine wants the product, otherwise it is stored
 	*/
 	public boolean giveProduct(Product p)
-	{
+	{	
 		// Check if the machine accepts it
 		if(requests.size()<1)
 			row.add(p); // Otherwise store it

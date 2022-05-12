@@ -1,5 +1,7 @@
 package Simulation;
 
+import java.util.ArrayList;
+
 /**
  *	A source of products
  *	This class implements CProcess so that it can execute events.
@@ -12,7 +14,9 @@ public class Source implements CProcess
 	/** Eventlist that will be requested to construct events */
 	private CEventList list;
 	/** Queue that buffers products for the machine */
-	private ProductAcceptor queue;
+	private ArrayList<ProductAcceptor> queues;
+	private ProductAcceptor regularQueue;
+	private ProductAcceptor serviceQueue;
 	/** Name of the source */
 	private String name;
 	/** Mean interarrival time */
@@ -25,14 +29,18 @@ public class Source implements CProcess
 	/**
 	*	Constructor, creates objects
 	*        Interarrival times are exponentially distributed with mean 33
-	*	@param q	The receiver of the products
+	*	@param regularQueues Queues of regular registries
+	*	@param regulardQueue regular queue of special registry
+	*	@param serviceQueue service queue of special registry 
 	*	@param l	The eventlist that is requested to construct events
 	*	@param n	Name of object
 	*/
-	public Source(ProductAcceptor q,CEventList l,String n)
+	public Source(ArrayList<ProductAcceptor> regularQueues, Queue regularQueue, Queue serviceQueue, CEventList l, String n)
 	{
 		list = l;
-		queue = q;
+		queues = regularQueues;
+		this.regularQueue = regularQueue;
+		this.serviceQueue = serviceQueue;
 		name = n;
 		meanArrTime=33;
 		// put first event in list for initialization
@@ -47,10 +55,10 @@ public class Source implements CProcess
 	*	@param n	Name of object
 	*	@param m	Mean arrival time
 	*/
-	public Source(ProductAcceptor q,CEventList l,String n,double m)
+	public Source(ArrayList<ProductAcceptor> q,CEventList l,String n,double m)
 	{
 		list = l;
-		queue = q;
+		queues = q;
 		name = n;
 		meanArrTime=m;
 		// put first event in list for initialization
@@ -65,10 +73,10 @@ public class Source implements CProcess
 	*	@param n	Name of object
 	*	@param ia	interarrival times
 	*/
-	public Source(ProductAcceptor q,CEventList l,String n,double[] ia)
+	public Source(ArrayList<ProductAcceptor> q,CEventList l,String n,double[] ia)
 	{
 		list = l;
-		queue = q;
+		queues = q;
 		name = n;
 		meanArrTime=-1;
 		interarrivalTimes=ia;
@@ -83,9 +91,12 @@ public class Source implements CProcess
 		// show arrival
 		System.out.println("Arrival at time = " + tme);
 		// give arrived product to queue
-		Product p = new Product();
+		boolean regularCustomer = Math.random() > 0.5;
+		
+		Product p = new Product(regularCustomer);
 		p.stamp(tme,"Creation",name);
-		queue.giveProduct(p);
+
+		chooseQueue(p);
 		// generate duration
 		if(meanArrTime>0)
 		{
@@ -104,6 +115,35 @@ public class Source implements CProcess
 			{
 				list.stop();
 			}
+		}
+	}
+	public void chooseQueue(Product p){
+		ArrayList<Queue> openQueues = new ArrayList<>();
+		//Define open queues
+		for(Queue q: queues){
+			if(q.isOpen()){
+				openQueues.add(q);
+			}
+		}
+		if(!p.isRegular()){
+			serviceQueue.giveProduct(p);
+		} else{
+			//Find shortest queue
+			Queue shortestQueue = new Queue(true);
+			int size = Integer.MAX_VALUE;
+			for(Queue q: openQueues){
+				if(q.getSize()  < size){
+					shortestQueue = q;
+					size = g.getSize;
+				}
+			}
+			//Also look at the combined queue of the service registry
+			if(regularQueue.size() + serviceQueue.size() < size){
+				shortestQueue = regularQueue;
+				size = regularQueue.size() + serviceQueue.size();
+			}
+			//Give product to shortest queue
+			shortestQueue.giveProduct(p);
 		}
 	}
 	

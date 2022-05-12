@@ -9,7 +9,8 @@ import java.util.ArrayList;
 public class Sink implements ProductAcceptor
 {
 	/** All products are kept */
-	private ArrayList<Product> products;
+	private ArrayList<Product> regulardProducts;
+	private ArrayList<Product> serviceProducts;
 	/** All properties of products are kept */
 	private ArrayList<Integer> numbers;
 	private ArrayList<Double> times;
@@ -26,7 +27,8 @@ public class Sink implements ProductAcceptor
 	public Sink(String n)
 	{
 		name = n;
-		products = new ArrayList<>();
+		regulardProducts = new ArrayList<>();
+		serviceProducts = new ArrayList<>();
 		numbers = new ArrayList<>();
 		times = new ArrayList<>();
 		events = new ArrayList<>();
@@ -38,7 +40,11 @@ public class Sink implements ProductAcceptor
 	public boolean giveProduct(Product p)
 	{
 		number++;
-		products.add(p);
+		if(p.isRegular()){
+			regulardProducts.add(p);
+		} else {
+			serviceProducts.add(p);
+		}
 		// store stamps
 		ArrayList<Double> t = p.getTimes();
 		ArrayList<String> e = p.getEvents();

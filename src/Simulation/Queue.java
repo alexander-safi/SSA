@@ -24,7 +24,23 @@ public class Queue implements ProductAcceptor
 		isOpen = true;
 		row = new ArrayList<>();
 		requests = new ArrayList<>();
+		this.regularQueue = regularQueue;
 	}
+
+	/**
+	 * Initialize the method that opens the machine register
+	 * Initialize the method that closes the machine register
+	 * @param the double queue register is always open!
+	 */
+	public void close(){
+		this.isOpen = false;
+	}
+
+	public void open(){
+		this.isOpen = true;
+	}
+
+
 	public boolean isRegular(){
 		return regularQueue;
 	}
@@ -33,6 +49,11 @@ public class Queue implements ProductAcceptor
 	}
 	public boolean isOpen(){
 		return isOpen;
+	}
+	public ArrayList<Product> getRow(){return row;}
+	public void setRow(ArrayList<Product> products){row = products;}
+	public boolean isEmpty(){
+		return getSize()==0;
 	}
 	
 	/**

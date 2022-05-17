@@ -76,4 +76,8 @@ class Product
 		tmp = stations.toArray(tmp);
 		return tmp;
 	}
+
+	public double getArrivalTime(){
+		return times.get(0);
+	}
 }

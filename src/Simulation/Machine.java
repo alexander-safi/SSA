@@ -1,5 +1,6 @@
 package Simulation;
 
+import java.util.ArrayList;
 
 
 /**
@@ -7,8 +8,7 @@ package Simulation;
  *	@author Joel Karel
  *	@version %I%, %G%
  */
-public class Machine implements CProcess,ProductAcceptor
-{
+public class Machine implements CProcess,ProductAcceptor {
 	/** Product that is being handled  */
 	private Product product;
 	/** Eventlist that will manage events */
@@ -33,7 +33,7 @@ public class Machine implements CProcess,ProductAcceptor
 	
 
 	/**
-	*	Constructor
+	* Constructor for a regular Machine
 	*        Service times are exponentially distributed with mean 30
 	*	@param q	Queue from which the machine has to take products
 	*	@param s	Where to send the completed products
@@ -53,7 +53,7 @@ public class Machine implements CProcess,ProductAcceptor
 	}
 
 	/**
-	*	Constructor
+	* Constructor
 	*        Service times are exponentially distributed with specified mean
 	*	@param q	Queue from which the machine has to take products
 	*	@param s	Where to send the completed products
@@ -83,6 +83,10 @@ public class Machine implements CProcess,ProductAcceptor
 	 */
 	public Machine(Queue regularQueue, Queue serviceQueue, ProductAcceptor regularSink, ProductAcceptor serviceSink, CEventList e, String n)
 	{
+		/**
+		 * Constructor for a double queued Machine
+		 * @param doesService checks whether the machine loops through the service queue
+		 */
 		doesService = true;
 		status='i';
 		queue=regularQueue;
@@ -92,12 +96,7 @@ public class Machine implements CProcess,ProductAcceptor
 		eventlist=e;
 		name=n;
 		meanProcTime=30;
-		//prioritize service queue
-		if(serviceQueue.getSize()>0){
-			serviceQueue.askProduct(this);
-		} else {
-			regularQueue.askProduct(this);
-		}
+		queue.askProduct(this);
 	}
 	
 	/**
@@ -127,10 +126,12 @@ public class Machine implements CProcess,ProductAcceptor
 	*	Method to have this object execute an event
 	*	@param type	The type of the event that has to be executed
 	*	@param tme	The current time
+	 * @param isOpen that checks whether the machine is active or not, depending on the no. of machines already open
 	*/
-	public void execute(int type, double tme)
-	{
-		if(!doesService){
+	public void execute(int type, double tme){
+
+			if(!doesService){
+
 			// show arrival
 			System.out.println("Product finished at time = " + tme);
 			// Remove product from system
@@ -141,6 +142,7 @@ public class Machine implements CProcess,ProductAcceptor
 			status='i';
 			// Ask the queue for products
 			queue.askProduct(this);
+
 		} else {
 			//Show arrival
 			System.out.println("Product finished at time = " + tme);
@@ -179,12 +181,29 @@ public class Machine implements CProcess,ProductAcceptor
 			// mark starting time
 			product.stamp(eventlist.getTime(),"Production started",name);
 			// start production
-			startProduction(product.isRegular());
+			startProduction();
 			// Flag that the product has arrived
 			return true;
 		}
 		// Flag that the product has been rejected
 		else return false;
+	}
+
+	public boolean isOpen(){
+        	return queue.isOpen();
+	}
+	public void setQueue(ArrayList<Product> customers){
+        	this.queue.setRow(customers);
+	}
+	//closes the machine if it has zero customers
+	public void closeIfCan(){
+		if(this.queue.getSize()==0){
+			this.queue.close();
+		}
+	}
+
+	public void open(){
+        	this.queue.open();
 	}
 	
 	/**
@@ -192,17 +211,12 @@ public class Machine implements CProcess,ProductAcceptor
 	*	Start the handling of the current product with an exponentionally distributed processingtime with average 30
 	*	This time is placed in the eventlist
 	*/
-	private void startProduction(boolean regularCustomer)
+	private void startProduction()
 	{
 		// generate duration
 		if(meanProcTime>0)
-		{	
-			double duration = 0.0;
-			if(regularCustomer){
-				duration = Distributions.normal(2.6,1.1);
-			} else {
-				duration = Distributions.normal(4.1,1.1);
-			}
+		{
+			double duration = drawRandomExponential(meanProcTime);
 			// Create a new event in the eventlist
 			double tme = eventlist.getTime();
 			eventlist.add(this,0,tme+duration); //target,type,time
@@ -232,5 +246,11 @@ public class Machine implements CProcess,ProductAcceptor
 		// Convert it into a exponentially distributed random variate with mean 33
 		double res = -mean*Math.log(u);
 		return res;
+	}
+
+	/** GETTERS AND SETTERS*/
+
+	public Queue getQueue(){
+		return queue;
 	}
 }

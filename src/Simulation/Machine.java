@@ -174,7 +174,7 @@ public class Machine implements CProcess,ProductAcceptor
 			// mark starting time
 			product.stamp(eventlist.getTime(),"Production started",name);
 			// start production
-			startProduction();
+			startProduction(product.isRegular());
 			// Flag that the product has arrived
 			return true;
 		}
@@ -187,12 +187,17 @@ public class Machine implements CProcess,ProductAcceptor
 	*	Start the handling of the current product with an exponentionally distributed processingtime with average 30
 	*	This time is placed in the eventlist
 	*/
-	private void startProduction()
+	private void startProduction(boolean regularCustomer)
 	{
 		// generate duration
 		if(meanProcTime>0)
-		{
-			double duration = drawRandomExponential(meanProcTime);
+		{	
+			double duration = 0.0;
+			if(regularCustomer){
+				duration = Distributions.normal(2.6,1.1);
+			} else {
+				duration = Distributions.normal(4.1,1.1);
+			}
 			// Create a new event in the eventlist
 			double tme = eventlist.getTime();
 			eventlist.add(this,0,tme+duration); //target,type,time

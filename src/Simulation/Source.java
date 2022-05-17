@@ -25,6 +25,7 @@ public class Source implements CProcess
 	private double[] interarrivalTimes;
 	/** Interarrival time iterator */
 	private int interArrCnt;
+	private boolean isRegular;
 
 	/**
 	*	Constructor, creates objects
@@ -43,8 +44,16 @@ public class Source implements CProcess
 		this.serviceQueue = serviceQueue;
 		name = n;
 		meanArrTime=33;
+		//Define duration
+		isRegular = Math.random() > 0.5;
+		double duration = 0.0;
+		if(isRegular){
+			duration = Distributions.poisson(1);
+		} else {
+			duration = Distributions.poisson(0.2);
+		}
 		// put first event in list for initialization
-		list.add(this,0,drawRandomExponential(meanArrTime)); //target,type,time
+		list.add(this,0,duration); //target,type,time
 	}
 
 	/**
@@ -62,7 +71,7 @@ public class Source implements CProcess
 		name = n;
 		meanArrTime=m;
 		// put first event in list for initialization
-		list.add(this,0,drawRandomExponential(meanArrTime)); //target,type,time
+		list.add(this,0,Distributions.poisson(meanArrTime)); //target,type,time
 	}
 
 	/**
@@ -91,17 +100,21 @@ public class Source implements CProcess
 		// show arrival
 		System.out.println("Arrival at time = " + tme);
 		// give arrived product to queue
-		boolean regularCustomer = Math.random() > 0.5;
 		
-		Product p = new Product(regularCustomer);
+		Product p = new Product(isRegular);
 		p.stamp(tme,"Creation",name);
 
+		isRegular = Math.random() > 0.5;
 		chooseQueue(p);
 		// generate duration
 		if(meanArrTime>0)
 		{
-			double duration = drawRandomExponential(meanArrTime);
-			// Create a new event in the eventlist
+			double duration = 0.0;
+			if(isRegular){
+				duration = Distributions.poisson(1);
+			} else {
+				duration = Distributions.poisson(0.2);
+			}			// Create a new event in the eventlist
 			list.add(this,0,tme+duration); //target,type,time
 		}
 		else

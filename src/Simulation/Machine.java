@@ -92,7 +92,12 @@ public class Machine implements CProcess,ProductAcceptor
 		eventlist=e;
 		name=n;
 		meanProcTime=30;
-		queue.askProduct(this);
+		//prioritize service queue
+		if(serviceQueue.getSize()>0){
+			serviceQueue.askProduct(this);
+		} else {
+			regularQueue.askProduct(this);
+		}
 	}
 	
 	/**

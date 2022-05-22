@@ -7,23 +7,26 @@ public class Distributions {
     /**
      * Method that generates Poisson-distributed random variables
      *
-     * @param rate Happening rate of the specified event in a minute
+     * @param mean Happening rate of the specified event in a minute
      * @return Poisson-distributed random variables
      * https://en.wikipedia.org/wiki/Poisson_distribution#Generating_Poisson-distributed_random_variables
      */
-    public static double poisson(double rate) {
-        Random random = new Random();
-        double l = Math.exp(-rate);
-        int k = 0;
-        double p = 1;
-        do {
-            p = p * random.nextDouble();
-            k++;
+    public static double poissonNew(double mean) {
+        double expRate = Math.exp(-mean);
+        int n = 0;
+        double randomU = Math.random();
+        double poissonStartValue = expRate;
+        double factorial = 1;
+        double powerValue = 1;
+        while (randomU > poissonStartValue) {
+            n++;
+            factorial *= factorial;
+            powerValue *= mean;
+            poissonStartValue += (powerValue * expRate) / factorial;
+
         }
-        while (p > l);
 
-
-        return k - 1;
+        return n;
     }
 
     public static double normal(double mean, double std) {

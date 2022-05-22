@@ -1,6 +1,6 @@
 package Simulation;
-
 import java.util.ArrayList;
+import java.util.Random;
 
 /**
  *	A source of products
@@ -14,46 +14,52 @@ public class Source implements CProcess
 	/** Eventlist that will be requested to construct events */
 	private CEventList list;
 	/** Queue that buffers products for the machine */
-	private ArrayList<Queue> queues;
-	private Queue regularQueue;
-	private Queue serviceQueue;
+	private ProductAcceptor queue;
+	/** Queues that buffer products for the machine */
+	private ProductAcceptor[] queues;
+	/** Type of products to generate */
+	private String type;
 	/** Name of the source */
 	private String name;
-	/** Mean interarrival time */
-	private double meanArrTime;
-	/** Interarrival times (in case pre-specified) */
-	private double[] interarrivalTimes;
-	/** Interarrival time iterator */
-	private int interArrCnt;
-	private boolean isRegular;
+	/** Interarrival time distribution */
+	private CDistribution interarrDistr;
+	/** This is a variable to calcualte average queue length later on */
+	private ArrayList<Integer> queueLengths;
 
 	/**
 	*	Constructor, creates objects
 	*        Interarrival times are exponentially distributed with mean 33
-	*	@param regularQueues Queues of regular registries
-	*	@param regulardQueue regular queue of special registry
-	*	@param serviceQueue service queue of special registry 
+	*	@param q	The receiver of the products
 	*	@param l	The eventlist that is requested to construct events
+	*	@param d1	Interarrival distribution
+	*	@param d2	Service time distribution
 	*	@param n	Name of object
 	*/
-	public Source(ArrayList<Queue> regularQueues, Queue regularQueue, Queue serviceQueue, CEventList l, String n)
+	public Source(ProductAcceptor q, CEventList l, CDistribution d, String n)
 	{
 		list = l;
-		queues = regularQueues;
-		this.regularQueue = regularQueue;
-		this.serviceQueue = serviceQueue;
+		queue = q;
 		name = n;
-		meanArrTime=33;
-		//Define duration
-		isRegular = Math.random() > 0.5;
-		double duration = 0.0;
-		if(isRegular){
-			duration = Distributions.poisson(1);
-		} else {
-			duration = Distributions.poisson(0.2);
-		}
+		interarrDistr = d;
+		queueLengths = new ArrayList<Integer>();
+		//meanArrTime=33;
 		// put first event in list for initialization
-		list.add(this,0,duration); //target,type,time
+		//list.add(this,0,drawRandomExponential(meanArrTime)); //target,type,time
+		list.add(this,0,interarrDistr.draw()); //target,type,time
+	}
+
+	public Source(ProductAcceptor[] qs, String t, CEventList l, CDistribution d, String n)
+	{
+		list = l;
+		queues = qs;
+		name = n;
+		interarrDistr = d;
+		type = t;
+		queueLengths = new ArrayList<Integer>();
+		//meanArrTime=33;
+		// put first event in list for initialization
+		//list.add(this,0,drawRandomExponential(meanArrTime)); //target,type,time
+		list.add(this,0,interarrDistr.draw()); //target,type,time
 	}
 
 	/**
@@ -64,15 +70,17 @@ public class Source implements CProcess
 	*	@param n	Name of object
 	*	@param m	Mean arrival time
 	*/
-	public Source(ArrayList<Queue> q,CEventList l,String n,double m)
+	/*
+	public Source(ProductAcceptor q,CEventList l,String n,double m)
 	{
 		list = l;
-		queues = q;
+		queue = q;
 		name = n;
 		meanArrTime=m;
 		// put first event in list for initialization
-		list.add(this,0,Distributions.poisson(meanArrTime)); //target,type,time
+		list.add(this,0,drawRandomExponential(meanArrTime)); //target,type,time
 	}
+	*/
 
 	/**
 	*	Constructor, creates objects
@@ -82,10 +90,11 @@ public class Source implements CProcess
 	*	@param n	Name of object
 	*	@param ia	interarrival times
 	*/
-	public Source(ArrayList<Queue> q,CEventList l,String n,double[] ia)
+	/*
+	public Source(ProductAcceptor q,CEventList l,String n,double[] ia)
 	{
 		list = l;
-		queues = q;
+		queue = q;
 		name = n;
 		meanArrTime=-1;
 		interarrivalTimes=ia;
@@ -93,73 +102,134 @@ public class Source implements CProcess
 		// put first event in list for initialization
 		list.add(this,0,interarrivalTimes[0]); //target,type,time
 	}
+	*/
 	
         @Override
 	public void execute(int type, double tme)
 	{
 		// show arrival
-		System.out.println("Arrival at time = " + tme);
+		System.out.println("Arrival at time = " + tme + " (" + this.type + ")");
 		// give arrived product to queue
-		
-		Product p = new Product(isRegular);
+		Product p = new Product(this.type);
 		p.stamp(tme,"Creation",name);
-
-		isRegular = Math.random() > 0.5;
-		chooseQueue(p);
+		openOrCloseQueues();
+		getShortestOpenQueue().giveProduct(p);
 		// generate duration
-		if(meanArrTime>0)
-		{
-			double duration = 0.0;
-			if(isRegular){
-				duration = Distributions.poisson(1);
-			} else {
-				duration = Distributions.poisson(0.2);
-			}			// Create a new event in the eventlist
-			list.add(this,0,tme+duration); //target,type,time
-		}
-		else
-		{
-			interArrCnt++;
-			if(interarrivalTimes.length>interArrCnt)
-			{
-				list.add(this,0,tme+interarrivalTimes[interArrCnt]); //target,type,time
-			}
-			else
-			{
-				list.stop();
-			}
-		}
+		double duration = interarrDistr.draw();
+		// Create a new event in the eventlist
+		list.add(this,0,tme+duration); //target,type,time
 	}
-	public void chooseQueue(Product p){
-		ArrayList<Queue> openQueues = new ArrayList<>();
-		//Define open queues
-		for(Queue q: queues){
-			if(q.isOpen()){
-				openQueues.add(q);
-			}
-		}
-		if(!p.isRegular()){
-			serviceQueue.giveProduct(p);
-		} else{
-			//Find shortest queue
-			Queue shortestQueue = new Queue(true);
-			int size = Integer.MAX_VALUE;
-			for(Queue q: openQueues){
-				if(q.getSize()  < size){
-					shortestQueue = q;
-					size = q.getSize();
+
+	private ProductAcceptor getShortestOpenQueue() {
+		ProductAcceptor shortestQueue = null;
+
+		for(int i=0; i<queues.length; i++) {
+			if(((Queue)queues[i]).isOpen()) {
+				// If it's the first open queue, select it as shortest for now
+				if(shortestQueue == null) {
+					shortestQueue = queues[i];
+				}
+
+				if(((Queue)queues[i]).getLength() < ((Queue)shortestQueue).getLength()) {
+					shortestQueue = queues[i];
 				}
 			}
-			//Also look at the combined queue of the service registry
-			if(regularQueue.getSize() + serviceQueue.getSize() < size){
-				shortestQueue = regularQueue;
-				size = regularQueue.getSize() + serviceQueue.getSize();
+		}
+
+		return shortestQueue;
+	}
+
+	private int howManyQueuesAreOpen() {
+		int openQueues = 0;
+		for(int i=0; i<queues.length; i++) {
+			if(((Queue)queues[i]).isOpen() == true && !((Queue)queues[i]).isCombined()) {
+				openQueues++;
 			}
-			//Give product to shortest queue
-			shortestQueue.giveProduct(p);
+		}
+
+		return openQueues;
+	}
+
+	private void openNewQueue() {
+		for(int i=0; i<queues.length; i++) {
+			if(((Queue)queues[i]).isOpen() == false) {
+				((Queue)queues[i]).open();
+				System.out.println("Queue " + (i+1) + " opened!");
+				return;
+			}
 		}
 	}
+
+	private void openOrCloseQueues() {
+		int nOpenQueues = howManyQueuesAreOpen();
+
+		// Check whether to close a specific queue (at least one other queue is less than 4 and this one is 0)
+		if(nOpenQueues > 2) {
+			for(int i=0; i<queues.length; i++) {
+				if(((Queue)queues[i]).isOpen() && ((Queue)queues[i]).getLength() == 0) {
+					boolean allOpenedQueuesFullBesidesI = true;
+					for(int j=0; j<queues.length; j++) {
+						if(i == j)
+							continue;
+						else {
+							if(((Queue)queues[j]).isOpen() && ((Queue)queues[j]).getLength() < 4) {
+								allOpenedQueuesFullBesidesI = false;
+							}
+						}
+					}
+
+					if(!((Queue)queues[i]).isCombined() && !allOpenedQueuesFullBesidesI) {
+						((Queue)queues[i]).close();
+						System.out.println("Queue " + (i+1) + " closed!");
+					}
+				}
+			}
+		}
+
+		// Check whether to open a new queue (all opened queues are of length at least 4)
+		if(nOpenQueues < queues.length) {
+			boolean allOpenedQueuesFull = true;
+			for(int i=0; i<queues.length; i++) {
+				if(((Queue)queues[i]).isOpen() && ((Queue)queues[i]).getLength() < 4) {
+					allOpenedQueuesFull = false;
+				}
+			}
+			if(allOpenedQueuesFull)
+				openNewQueue();
+		}
+		
+		// DEBUG: Print state of the queues (and therefore registers)
+		if(queues.length > 1) {
+			for(int i=0; i<queues.length; i++) {
+				boolean isOpen = ((Queue)queues[i]).isOpen();
+				int customers = ((Queue)queues[i]).getLength();
+
+				System.out.print("Q" + (i+1) + ": " + isOpen + "(" + customers + "), ");
+			}
+			System.out.println();
+		}
+	}
+
+	public void saveQueueLengths() {
+		for(int i=0; i<queues.length; i++) {
+			boolean isOpen = ((Queue)queues[i]).isOpen();
+
+			if(isOpen) {
+				int qLength = ((Queue)queues[i]).getLength();
+				queueLengths.add(qLength);
+			}
+		}
+	}
+
+	public int getTotalQueueLength() {
+		int totalQueueLength = 0;
+		for(int i=0; i<queueLengths.size(); i++) {
+			totalQueueLength += queueLengths.get(i);
+		}
+		return totalQueueLength;
+	}
 	
+	/*
 	public static double drawRandomExponential(double mean)
 	{
 		// draw a [0,1] uniform distributed number
@@ -168,4 +238,5 @@ public class Source implements CProcess
 		double res = -mean*Math.log(u);
 		return res;
 	}
+	*/
 }

@@ -13,15 +13,21 @@ public class Queue implements ProductAcceptor
 	private ArrayList<Product> row;
 	/** Requests from machine that will be handling the products */
 	private ArrayList<Machine> requests;
+	/** Variable to indicate whether a queue is open */
+	private boolean isOpen;
+	/** Reference to the correlated queue (if not null, then the queue is part of hybrid queue) */
+	private Queue correlatedServiceQueue;
 	
 	/**
 	*	Initializes the queue and introduces a dummy machine
 	*	the machine has to be specified later
 	*/
-	public Queue()
+	public Queue(boolean isOpen, Queue correlatedServiceQueue)
 	{
 		row = new ArrayList<>();
 		requests = new ArrayList<>();
+		this.isOpen = isOpen;
+		this.correlatedServiceQueue = correlatedServiceQueue;
 	}
 	
 	/**
@@ -71,5 +77,31 @@ public class Queue implements ProductAcceptor
 				row.add(p); // Otherwise store it
 		}
 		return true;
+	}
+
+	public void open() {
+		isOpen = true;
+	}
+
+	public void close() {
+		isOpen = false;
+	}
+
+	public boolean isOpen() {
+		return isOpen;
+	}
+
+	public int getLength() {
+		if(isCombined())
+			return row.size() + correlatedServiceQueue.getLength();
+		else
+			return row.size();
+	}
+
+	public boolean isCombined() {
+		if(correlatedServiceQueue != null)
+			return true;
+		else
+			return false;
 	}
 }

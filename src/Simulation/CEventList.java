@@ -99,6 +99,33 @@ public class CEventList implements CProcess
 		}
 	}
 
+	/**
+	*	Method for starting the eventlist.
+	*	It will run until there are no longer events in the list or that a maximum time has elapsed. It makes queue length measurements each minute
+	*	@param mx De maximum time of the simulation
+	*	@param rs Regular source
+	*	@param ss Service source
+	*/
+	/*
+	public void start(double mx, Source s1, Source s2)
+	{
+		add(this,-1,mx);
+		// stop criterion
+		while((events.size()>0)&&(!stopFlag))
+		{
+			// Make the similation time equal to the execution time of the first event in the list that has to be processed
+			currentTime=events.get(0).getExecutionTime();
+			// Let the element be processed
+			events.get(0).execute();
+			// Remove the event from the list
+			events.remove(0);
+
+			s1.saveQueueLengths();
+			s2.saveQueueLengths();
+		}
+	}
+	*/
+
 	public void stop()
 	{
 		stopFlag = true;

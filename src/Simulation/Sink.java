@@ -88,4 +88,26 @@ public class Sink implements ProductAcceptor
 		tmp = stations.toArray(tmp);
 		return tmp;
 	}
+
+
+	// Get output measures
+	public double getMeanDelay() {
+		return getTotalDelay()/products.size();
+	}
+
+	public double getTotalDelay() {
+		double totalDelay = 0;
+
+		for(int i=0; i<products.size(); i++) {
+			ArrayList<Double> t = products.get(i).getTimes();
+			double d = t.get(1) - t.get(0);
+			totalDelay += d;
+		}
+
+		return totalDelay;
+	}
+
+	public int getNumberOfProducts() {
+		return products.size();
+	}
 }

@@ -6,134 +6,18 @@
 
 package Simulation;
 
-import java.util.ArrayList;
-import java.util.Comparator;
+import Simulation.Distributions.*;
 
 public class Simulation {
+
+	public static int SIMULATION_TIME = 500;
 
     public CEventList list;
     public Queue queue;
     public Source source;
     public Sink sink;
     public Machine mach;
-
-
-	/**
-	 * Method that opens a new machine every time a machine is filled with 4 customers.
-	 * @param machines, the list of machines being observed.
-	 * @return true or false, depending on whether the customer number exceeds 4.
-	 */
-	private boolean mustOpenNewMachine(ArrayList<Machine> machines){
-    	boolean allHave4customers = true;
-		for(Machine m : machines){
-			if(m.isOpen()){
-				if(m.getQueue().getSize()<4){
-					allHave4customers = false;
-					break;
-				}
-			}
-		}
-		return allHave4customers;
-	}
-
-	private boolean allOpen(ArrayList<Machine> machines){
-    	for(Machine m : machines){
-    		if(!m.isOpen()){
-    			return false;
-			}
-		}
-    	return true;
-	}
-
-	private int nrOfOpenMachines(ArrayList<Machine> machines){
-		// minimum no. of machines open is 3; 2 regular and the service machine must be always open.
-		int nr = 3;
-		for(Machine m: machines){
-			// max number of open machines is 6 in total
-			if(m.isOpen() && nr < 7 ){
-				nr++;
-			}
-		}
-		return nr;
-	}
-
-
-
-	//getLastCustomer returns a list of
-	/*private ArrayList<Product> getLastCustomers(ArrayList<Machine> machines){
-		ArrayList<Product> newCustomers = new ArrayList<Product>();
-		for(Machine m : machines){
-			int size = m.getQueue().getSize();
-			Product customer = m.getQueue().getRow().get(size-1);
-			newCustomers.add(customer);
-		}
-    	return newCustomers;
-	}*/
-
-	private ArrayList<Product> getAllCustomers(ArrayList<Machine> machines){
-		ArrayList<Product> customers = new ArrayList<Product>();
-		for(Machine m : machines){
-			ArrayList<Product> c = m.getQueue().getRow();
-			customers.addAll(c);
-		}
-		customers.sort(Comparator.comparing(Product::getArrivalTime));
-		return customers;
-	}
-
-	//assumes there are n open machines with queues size>=4 and one empty queue
-	//takes the last customer of each of the full queues and puts them in the new machine
-	private ArrayList<Machine> rearrangeQueues(ArrayList<Machine> machines){
-		ArrayList<Product> normalCustomers = getAllCustomers(machines);
-		int nrOfOpenMachines = nrOfOpenMachines(machines);
-		int newQueueLength = normalCustomers.size()/nrOfOpenMachines;
-		int i = 0;
-		for(Machine m : machines){
-			if(m.isOpen()){
-
-				ArrayList<Product> newRow = new ArrayList<Product>();
-				if(i+newQueueLength<=normalCustomers.size()){
-					newRow = new ArrayList(normalCustomers.subList(i,i+newQueueLength-1));
-				}
-				else{
-					newRow = new ArrayList(normalCustomers.subList(i,normalCustomers.size()-1));
-				}
-				m.setQueue(newRow);
-				i+=newQueueLength;
-			}
-			if(i>=normalCustomers.size()){
-				break;
-			}
-		}
-		return machines;
-	}
-
-	/*
-	* updates the state of the machines (opens/closes them)
-	* if a machine is opened, the queues are rearranged
-	*/
-
-	private ArrayList<Machine> updateMachines(ArrayList<Machine> machines){
-		int openMachines = nrOfOpenMachines(machines);
-		if(openMachines > 3){
-			for(Machine m : machines){
-				m.closeIfCan();
-				openMachines--;
-				if(openMachines<=3){
-					break;
-				}
-			}
-		}
-		if(mustOpenNewMachine(machines) && !allOpen(machines)){
-			for(Machine m: machines){
-				if(!m.isOpen()){
-					m.open();
-					rearrangeQueues(machines);
-					break;
-				}
-			}
-		}
-		return machines;
-	}
+	
 
 	/**
      * @param args the command line arguments
@@ -142,42 +26,57 @@ public class Simulation {
     	// Create an eventlist
 		CEventList l = new CEventList();
 
-		// A queue for the machine
-		ArrayList<Queue> queues = new ArrayList<>();
+		// Define the service queue
+		Queue[] serviceQueues = new Queue[1];
+		serviceQueues[0] = new Queue(true, null);
 
-		//Create 5 regular queues
-		for(int i=0; i<5;i++){
-			Queue q = new Queue(true);
-			queues.add(q);
-		}
+		// Define all the queues
+		Queue[] regularQueues = new Queue[6];
+		regularQueues[0] = (new Queue(true, null));
+		regularQueues[1] = (new Queue(true, null));
+		regularQueues[2] = (new Queue(false, null));
+		regularQueues[3] = (new Queue(false, null));
+		regularQueues[4] = (new Queue(false, null));
+		regularQueues[5] = (new Queue(true, serviceQueues[0])); // Part of the combined register
+		
+		Source regularSource = new Source(
+			regularQueues, "regular", l,
+			new Poisson(1),
+			"Regular source"
+		);
 
-		//Create 1 more regular queue for the service registry
-		Queue qr = new Queue(true);
-		//Create 1 service queue
-		Queue qs = new Queue(false);
-
-		// A source
-		Source source = new Source(queues,qr,qs,l,"Source");
-		queues.add(qr);
-		queues.add(qs);
+		Source serviceSource = new Source(
+			serviceQueues, "service", l,
+			new Poisson(5),
+			"Service source"
+		);
 
 		// A sink
-		Sink sr = new Sink("Sink Regular");
-		Sink ss = new Sink("Sink Service");
+		Sink regularSink = new Sink("Regular sink");
+		Sink serviceSink = new Sink("Service sink");
+		
+		// A machine
+		Machine m1 = new Machine(regularQueues[0], regularSink, l, new Normal(2.6, 1.1), "Machine 1");
+		Machine m2 = new Machine(regularQueues[1], regularSink, l, new Normal(2.6, 1.1), "Machine 2");
+		Machine m3 = new Machine(regularQueues[2], regularSink, l, new Normal(2.6, 1.1), "Machine 3");
+		Machine m4 = new Machine(regularQueues[3], regularSink, l, new Normal(2.6, 1.1), "Machine 4");
+		Machine m5 = new Machine(regularQueues[4], regularSink, l, new Normal(2.6, 1.1), "Machine 5");
 
-		//  Machines generation (/ cash registry)
-		ArrayList<Machine> machines = new ArrayList<>();
-		for(int i=0; i<6;i++){
-			Machine m = new Machine(queues.get(i),sr,l,"Machine "+(i+1));
-			machines.add(m);
-		}
-		Machine m = new Machine(queues.get(5), queues.get(6),sr,ss,l,"Machine Service");
-
-
-
+		Machine m6 = new Machine(regularQueues[5], serviceQueues[0], regularSink, serviceSink, l, new Normal(2.6, 1.1), new Normal(4.6, 1.1), "Machine 6");
 
 		// start the eventlist
-		l.start(2000); // 2000 is maximum time
-    }
+		l.start(SIMULATION_TIME, regularSource, serviceSource); // Maximum time
 
+		// Print the output measures
+		System.out.println();
+		System.out.println("---------- OUTPUT MEASURES ----------");
+		System.out.println("Mean delay of regular customers: " + regularSink.getMeanDelay());
+		System.out.println("Mean delay of service customers: " + serviceSink.getMeanDelay());
+		double meanDelay = (regularSink.getTotalDelay() + serviceSink.getTotalDelay()) / (regularSink.getNumberOfProducts() + serviceSink.getNumberOfProducts());
+		System.out.println("Mean delay overall: " + meanDelay);
+
+		// Here we're taking just the regular source because the combined desk returns total queue length for both regular and service queues
+		double averageQueueLength = ((double)regularSource.getTotalQueueLength()) / ((double)(SIMULATION_TIME * regularQueues.length));
+		System.out.println("Average queue length: " + averageQueueLength);
+    }
 }

@@ -1,6 +1,5 @@
 package Simulation;
 
-import java.util.ArrayList;
 
 
 /**
@@ -8,13 +7,14 @@ import java.util.ArrayList;
  *	@author Joel Karel
  *	@version %I%, %G%
  */
-public class Machine implements CProcess,ProductAcceptor {
+public class Machine implements CProcess,ProductAcceptor
+{
 	/** Product that is being handled  */
 	private Product product;
 	/** Eventlist that will manage events */
 	private final CEventList eventlist;
 	/** Queue from which the machine has to take products */
-	private Queue queue;
+	private Queue regularQueue;
 	private Queue serviceQueue;
 	/** Sink to dump products */
 	private ProductAcceptor sink;
@@ -29,144 +29,71 @@ public class Machine implements CProcess,ProductAcceptor {
 	private double[] processingTimes;
 	/** Processing time iterator */
 	private int procCnt;
-	private boolean doesService;
+	/** Service time distribution */
+	private CDistribution serviceDistr;
+	private CDistribution serviceDistr2;
 	
 
 	/**
-	* Constructor for a regular Machine
+	*	Constructor
 	*        Service times are exponentially distributed with mean 30
 	*	@param q	Queue from which the machine has to take products
 	*	@param s	Where to send the completed products
 	*	@param e	Eventlist that will manage events
 	*	@param n	The name of the machine
 	*/
-	public Machine(Queue q, ProductAcceptor s, CEventList e, String n)
-	{	
-		doesService = false;
+	public Machine(Queue q, ProductAcceptor s, CEventList e, CDistribution d, String n)
+	{
 		status='i';
-		queue=q;
+		regularQueue=q;
 		sink=s;
 		eventlist=e;
 		name=n;
 		meanProcTime=30;
-		queue.askProduct(this);
+		serviceDistr = d;
+		regularQueue.askProduct(this);
 	}
+	public Machine(Queue regularQ, Queue serviceQ, ProductAcceptor s, ProductAcceptor s2, CEventList e, CDistribution d, CDistribution d2, String n)
+	{
+		status='i';
+		regularQueue=regularQ;
+		serviceQueue=serviceQ;
+		sink=s;
+		serviceSink=s2;
+		eventlist=e;
+		name=n;
+		meanProcTime=30;
+		serviceDistr = d;
+		serviceDistr2 = d2;
 
-	/**
-	* Constructor
-	*        Service times are exponentially distributed with specified mean
-	*	@param q	Queue from which the machine has to take products
-	*	@param s	Where to send the completed products
-	*	@param e	Eventlist that will manage events
-	*	@param n	The name of the machine
-	*        @param m	Mean processing time
-	*/
-	public Machine(Queue q, ProductAcceptor s, CEventList e, String n, double m)
-	{
-		doesService = false;
-		status='i';
-		queue=q;
-		sink=s;
-		eventlist=e;
-		name=n;
-		meanProcTime=m;
-		queue.askProduct(this);
-	}
-	/**
-	 * Constructor for mixed cash/service register
-	 * @param regularQueue : queue for regular registry
-	 * @param serviceQueue : queue for servide registry
-	 * @param s Where to send the completed products
-	 * @param e Eventlist that will manage events
-	 * @param n The name of the machine
-	 * @param m Mean processing time
-	 */
-	public Machine(Queue regularQueue, Queue serviceQueue, ProductAcceptor regularSink, ProductAcceptor serviceSink, CEventList e, String n)
-	{
-		/**
-		 * Constructor for a double queued Machine
-		 * @param doesService checks whether the machine loops through the service queue
-		 */
-		doesService = true;
-		status='i';
-		queue=regularQueue;
-		this.serviceQueue = serviceQueue;
-		sink=regularSink;
-		this.serviceSink = serviceSink;
-		eventlist=e;
-		name=n;
-		meanProcTime=30;
-		if(serviceQueue.getSize()>0){
-			serviceQueue.askProduct(this);
-		} else {
+		if(!serviceQueue.askProduct(this))
 			regularQueue.askProduct(this);
-		}
-
-	}
-	
-	/**
-	*	Constructor
-	*        Service times are pre-specified
-	*	@param q	Queue from which the machine has to take products
-	*	@param s	Where to send the completed products
-	*	@param e	Eventlist that will manage events
-	*	@param n	The name of the machine
-	*        @param st	service times
-	*/
-	public Machine(Queue q, ProductAcceptor s, CEventList e, String n, double[] st)
-	{
-		doesService = false;
-		status='i';
-		queue=q;
-		sink=s;
-		eventlist=e;
-		name=n;
-		meanProcTime=-1;
-		processingTimes=st;
-		procCnt=0;
-		queue.askProduct(this);
 	}
 
 	/**
 	*	Method to have this object execute an event
 	*	@param type	The type of the event that has to be executed
 	*	@param tme	The current time
-	 * @param isOpen that checks whether the machine is active or not, depending on the no. of machines already open
 	*/
-	public void execute(int type, double tme){
-
-			if(!doesService){
-
-			// show arrival
-			System.out.println("Product finished at time = " + tme);
-			// Remove product from system
-			product.stamp(tme,"Production complete",name);
+	public void execute(int type, double tme)
+	{
+		// show arrival
+		System.out.println("Product finished at time = " + tme);
+		// Remove product from system
+		product.stamp(tme,"Production complete",name);
+		if(product.getType() == "regular")
 			sink.giveProduct(product);
-			product=null;
-			// set machine status to idle
-			status='i';
-			// Ask the queue for products
-			queue.askProduct(this);
-
+		else
+			serviceSink.giveProduct(product);
+		product=null;
+		// set machine status to idle
+		status='i';
+		// Ask the queue for products
+		if(serviceQueue != null) {
+			if(!serviceQueue.askProduct(this))
+				regularQueue.askProduct(this);
 		} else {
-			//Show arrival
-			System.out.println("Product finished at time = " + tme);
-			//Remove product from system
-			product.stamp(tme,"Production complete",name);
-			//Send product to appropriate sink
-			if(product.isRegular()){
-				sink.giveProduct(product);
-			} else {
-				serviceSink.giveProduct(product);
-			}
-			product = null;
-			//Set machine status to idle
-			status = 'i';
-			//Ask product to queues : ask service queue first, if no product is given, 
-			//						  ask regular queue second
-			if(!serviceQueue.askProduct(this)){
-				queue.askProduct(this);
-			}
+			regularQueue.askProduct(this);
 		}
 	}
 	
@@ -186,29 +113,12 @@ public class Machine implements CProcess,ProductAcceptor {
 			// mark starting time
 			product.stamp(eventlist.getTime(),"Production started",name);
 			// start production
-			startProduction(product.isRegular());
+			startProduction(product.getType());
 			// Flag that the product has arrived
 			return true;
 		}
 		// Flag that the product has been rejected
 		else return false;
-	}
-
-	public boolean isOpen(){
-        	return queue.isOpen();
-	}
-	public void setQueue(ArrayList<Product> customers){
-        	this.queue.setRow(customers);
-	}
-	//closes the machine if it has zero customers
-	public void closeIfCan(){
-		if(this.queue.getSize()==0){
-			this.queue.close();
-		}
-	}
-
-	public void open(){
-        	this.queue.open();
 	}
 	
 	/**
@@ -216,16 +126,20 @@ public class Machine implements CProcess,ProductAcceptor {
 	*	Start the handling of the current product with an exponentionally distributed processingtime with average 30
 	*	This time is placed in the eventlist
 	*/
-	private void startProduction(boolean isRegular)
+	private void startProduction(String type)
 	{
 		// generate duration
 		if(meanProcTime>0)
 		{
-			double duration = 0.0;
-			if(isRegular){
-				duration = Distributions.normal(2.6,1.1);
-			} else {
-				duration = Distributions.normal(4.1,1.1);
+			double duration;
+			duration = serviceDistr.draw();
+			if(type == "regular")
+				duration = serviceDistr.draw();
+			else {
+				duration = serviceDistr2.draw();
+				// Handle the case when duration is 0
+				while(duration == 0)
+					duration = serviceDistr2.draw();
 			}
 			// Create a new event in the eventlist
 			double tme = eventlist.getTime();
@@ -247,20 +161,5 @@ public class Machine implements CProcess,ProductAcceptor {
 				eventlist.stop();
 			}
 		}
-	}
-
-	public static double drawRandomExponential(double mean)
-	{
-		// draw a [0,1] uniform distributed number
-		double u = Math.random();
-		// Convert it into a exponentially distributed random variate with mean 33
-		double res = -mean*Math.log(u);
-		return res;
-	}
-
-	/** GETTERS AND SETTERS*/
-
-	public Queue getQueue(){
-		return queue;
 	}
 }

@@ -5,9 +5,12 @@
  */
 
 package Simulation;
+
 import Simulation.Distributions.*;
 
 public class Simulation {
+
+	public static int SIMULATION_TIME = 500;
 
     public CEventList list;
     public Queue queue;
@@ -62,7 +65,7 @@ public class Simulation {
 		Machine m6 = new Machine(regularQueues[5], serviceQueues[0], regularSink, serviceSink, l, new Normal(2.6, 1.1), new Normal(4.6, 1.1), "Machine 6");
 
 		// start the eventlist
-		l.start(500); // Maximum time
+		l.start(SIMULATION_TIME, regularSource, serviceSource); // Maximum time
 
 		// Print the output measures
 		System.out.println();
@@ -71,5 +74,9 @@ public class Simulation {
 		System.out.println("Mean delay of service customers: " + serviceSink.getMeanDelay());
 		double meanDelay = (regularSink.getTotalDelay() + serviceSink.getTotalDelay()) / (regularSink.getNumberOfProducts() + serviceSink.getNumberOfProducts());
 		System.out.println("Mean delay overall: " + meanDelay);
+
+		// Here we're taking just the regular source because the combined desk returns total queue length for both regular and service queues
+		double averageQueueLength = ((double)regularSource.getTotalQueueLength()) / ((double)(SIMULATION_TIME * regularQueues.length));
+		System.out.println("Average queue length: " + averageQueueLength);
     }
 }

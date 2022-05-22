@@ -1,4 +1,5 @@
 package Simulation;
+import java.util.ArrayList;
 import java.util.Random;
 
 /**
@@ -22,6 +23,8 @@ public class Source implements CProcess
 	private String name;
 	/** Interarrival time distribution */
 	private CDistribution interarrDistr;
+	/** This is a variable to calcualte average queue length later on */
+	private ArrayList<Integer> queueLengths;
 
 	/**
 	*	Constructor, creates objects
@@ -38,6 +41,7 @@ public class Source implements CProcess
 		queue = q;
 		name = n;
 		interarrDistr = d;
+		queueLengths = new ArrayList<Integer>();
 		//meanArrTime=33;
 		// put first event in list for initialization
 		//list.add(this,0,drawRandomExponential(meanArrTime)); //target,type,time
@@ -51,6 +55,7 @@ public class Source implements CProcess
 		name = n;
 		interarrDistr = d;
 		type = t;
+		queueLengths = new ArrayList<Integer>();
 		//meanArrTime=33;
 		// put first event in list for initialization
 		//list.add(this,0,drawRandomExponential(meanArrTime)); //target,type,time
@@ -203,6 +208,25 @@ public class Source implements CProcess
 			}
 			System.out.println();
 		}
+	}
+
+	public void saveQueueLengths() {
+		for(int i=0; i<queues.length; i++) {
+			boolean isOpen = ((Queue)queues[i]).isOpen();
+
+			if(isOpen) {
+				int qLength = ((Queue)queues[i]).getLength();
+				queueLengths.add(qLength);
+			}
+		}
+	}
+
+	public int getTotalQueueLength() {
+		int totalQueueLength = 0;
+		for(int i=0; i<queueLengths.size(); i++) {
+			totalQueueLength += queueLengths.get(i);
+		}
+		return totalQueueLength;
 	}
 	
 	/*

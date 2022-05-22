@@ -106,7 +106,7 @@ public class CEventList implements CProcess
 	*	@param rs Regular source
 	*	@param ss Service source
 	*/
-	/*
+
 	public void start(double mx, Source s1, Source s2)
 	{
 		add(this,-1,mx);
@@ -124,7 +124,7 @@ public class CEventList implements CProcess
 			s2.saveQueueLengths();
 		}
 	}
-	*/
+
 
 	public void stop()
 	{
